@@ -1,0 +1,48 @@
+docker run [OPTIONS] IMAGE [COMMAND] [ARG..]    新建+启动容器
+    OPTIONS说明
+        --name  给容器指定一个名称
+        -d  后台运行容器并返回容器ID,也即启动守护式容器(后台运行)   后面会详解、
+        -i  以交互模式运行容器,通常与-t同时使用
+        -t  为容器重新分配一个伪输入终端,通常与-i同时使用
+        -P  随机端口映射,大写P
+        -p  指定端口映射,小写p  需要通过端口映射来找到docker,并且docker上部署的多个镜像也有自己对应的端口
+        注: 对于交互模式运行容器的理解,因为我们可能会在一个docker上在安装一个centos7或者ubuntu的镜像,那如果我们想要操作docker里的ubuntu就需要一个新的命令行
+            所以通过 -it 启动即可获得一个属于当前docker下的ubuntu的terminal,使我们可以操作ubuntu来实现需求,这就是交互模式
+
+docker ps   列出正在运行的容器
+    -a  显示所有的容器,包括未运行的
+    -f  根据条件过滤显示的内容     docker ps -f "name=temp" 查出容器名称为temp的容器信息
+    -l  显示最近一个创建的容器的信息
+    -n  显示最近创建的n个容器,包含已下线的  docker ps -n 3  显示最近创建的3个容器
+    -q  静默模式,只显示容器编号
+
+退出容器的方式
+    run进去容器,exit退出,容器停止
+    run进去容器,ctrl+p+q退出,容器不停止
+    若想再次进入  docker attach <容器name>  或者  docker exec -it <容器ID> /bin/bash
+    attach直接进入容器启动命令的终端,不会启动新的进程,用exit退出,会导致容器的停止   过时
+    exec是在容器中打开新的终端,并且可以启动新的进程,用exit退出,不会导致容器的停止    优选
+
+以下命令都建议用容器ID
+    docker start <容器ID> 或 <容器name>  启动已停止的容器
+    docker restart <容器ID> 或 <容器name>    重启容器
+    docker stop <容器ID> 或 <容器name>   停止容器
+    docker kill <容器ID> 或 <容器name>   强制停止容器
+    docker rm <容器ID> 或 <容器name>    删除已停止的容器
+    docker rm -f <容器ID> 或 <容器name>
+
+
+在大部门场景下,我们希望docker的服务是后台运行的,我们可以通过-d指定容器的后台运行模式
+docker run -d <镜像名>     例： docker run -d redis:6.0.8
+
+docker top <容器id>   查看该id容器的内存使用情况
+docker inspect <容器id>   查看该id容器的内部细节
+
+从容器内拷贝数据到主机上    docker cp <容器ID>:<容器内路径> <目的主机路径>     例:    docker cp 31170b5349cf:/tmp/a.txt /home
+
+导入容器内容和导出容器内容
+    export 导出容器的内容作为一个tar归档文件[对应import命令]   例:  docker export docker export 31170b5349cf > temp.tar
+    import 从tar包中的内容创建一个新的文件系统再导入为镜像[对应export]  例：cat a.tar | docker import - dockercpdemo/demo:001
+    import命令结束以后实际上就会在本地解压出一个：与之前容器完完全全一模一样的镜像文件,包括我们之前在旧容器中创建的内容、数据,当我们执行这个解压后的镜像后,生成新容器中的内容、数据也完全一致
+
+
