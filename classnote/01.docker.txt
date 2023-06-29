@@ -16,3 +16,8 @@ docker的镜像文件类似于Java的类模板;而docker容器实例类似于Java中new出来的对象
 假如我们想在docker上部署一个一主两从的redis集群,我们只需要创建三个redis容器进而配置即可;而如果我们要在虚拟机实现,就需要开启三台虚拟机才可以搭建集群,很明显docker更加轻量快捷
 仓库是集中存放镜像文件的地方
 镜像文件可以看作容器的模板,Docker根据镜像生成容器实例,同一个镜像文件可以生成多个同时运行的容器实例
+
+5.docker的虚悬镜像是什么
+仓库名、标签都是<none>的镜像,俗称虚悬镜像dangling image
+当我们删除一个容器时,并不会删除其镜像,而是将其镜像标记为虚悬镜像,我们可以通过docker images -f dangling=true查看虚悬镜像,
+我们可以通过docker rmi $(docker images -f dangling=true -q)删除所有虚悬镜像

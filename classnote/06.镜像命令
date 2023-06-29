@@ -1,0 +1,27 @@
+docker images   罗列本地镜像
+    输出结果会从五个维度来展示本地镜像的信息
+        REPOSITORY: 表示镜像的仓库源
+        TAG: 镜像的标签版本号
+        IMAGE ID: 镜像ID
+        CREATED: 镜像创建时间
+        SIZE: 镜像大小
+
+docker search <镜像名称>  用于在docker hub远程库上搜索指定镜像
+    docker search --limit 5 redis   类似于分页,指在dockerhub远程库上搜索redis,并只显示其中点赞数最多的前五个
+
+docker pull
+    docker pull <镜像名称>:TAG  例:docker pull redis:6.0.8
+        没有TAG默认拉取最新版
+
+docker images -q  | docker images -qa   只展示本地镜像的镜像ID
+
+docker system df    查看镜像/容器/数据卷所占的空间
+    输出结果包含四个维度
+        Images
+        Containers
+        Local Volumes
+        Build Cache
+
+docker rmi <IMAGE ID>   根据镜像ID删除镜像,是单个删除
+docker rmi -f <镜像名1>:TAG <镜像名2>:TAG     根据多个镜像ID,一次性删除多个镜像
+docker rmi -f $(docker images -qa)      删除全部镜像
