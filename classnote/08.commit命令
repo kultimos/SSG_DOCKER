@@ -1,0 +1,8 @@
+docker commit 在本地环境,提交容器副本使之成为一个新的镜像
+docker commit -m "提交的描述信息" -a="作者" 容器ID 要创建的目标镜像名: [标签名]
+例子:
+docker commit -m="add vim cmd" -a="kultimos" 14ebb233c6c4 newubuntu:1.1
+
+演示ubuntu安装vim
+apt-get update
+apt-get -y install vim
