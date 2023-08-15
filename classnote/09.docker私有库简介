@@ -1,0 +1,45 @@
+1.下载镜像Docker Registry
+    docker pull registry
+
+2.运行私有库Registry,相当于本地有个私有Docker hub (这里需要注意运行私有库的命令完全不同于我们运行其他镜像,就使用下面这行命令)
+    docker run -d -p 5000:5000 -v/zzyyuse/myregistry/:/tmp/registry --privileged=true registry
+
+3.开启一个ubuntu容器,
+    执行命令 ifconfig   (会提示ifconfig: command not found) ——>因为ubuntu默认没有安装net-tools
+
+    执行命令 apt-get update
+    执行命令 apt-get install net-tools
+    至此成功在ubuntu上安装了net-tools,可以执行ifconfig命令
+
+4.以我们安装了net-tools的ubuntu容器为基础,创建一个新的镜像:privateubuntu
+    docker commit -m="privateUbuntu" -a="zzyy" 2e8ab7925313 privateubuntu:v1
+    2e8ab7925313是ubuntu容器的id
+    privateubuntu:v1是新的镜像名字
+    其余的先不需要关注
+
+5.查看私有库中的镜像
+    curl -XGET http://192.168.10.129:5000/v2/_catalog
+
+6.将新镜像privateubuntu:v1 修改服务私服规范的tag(相当于又克隆了一份符合docker私服规范的镜像)
+    docker tag privateubuntu:v1 192.168.10.129:5000/privateubuntu:2.0
+
+7.修改配置文件,使之支持http
+     进入docker配置文件   vim /etc/docker/daemon.json
+
+    增加一条命令   "insecure-registries": ["192.168.10.129:5000"]
+
+8.重新启动docker服务使配置文件生效
+
+9.push推送到本地私服库
+    docker push 192.168.10.129:5000/privateubuntu:2.0
+
+10.再次查看私有库中的镜像(此时已经可以查到我们刚刚推送上去的镜像)
+       curl -XGET http://192.168.10.129:5000/v2/_catalog
+
+11.pull到本地运行
+    docker pull
+
+注意：
+需要注意这里的全过程中,我们的原始ubuntu程序是不能关闭的,
+因为在启动一个 Docker 容器后，容器中的文件系统是隔离的，并且会根据镜像的定义进行创建。因此，当你关闭并重新启动容器实例时，所有更改都会被丢弃，包括你安装的软件。
+即如果我们关停了原始ubuntu后，进行了commit操作,那么我们的新镜像中是没有net-tools的,因为我们在原始ubuntu中安装的net-tools是临时的,并没有被commit到新镜像中

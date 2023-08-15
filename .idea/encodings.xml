@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/classnote/01.docker.txt" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/classnote/02.linux安装docker步骤.txt" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/classnote/03.配置阿里云镜像" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/classnote/05.帮助启动类命令" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/classnote/06.镜像命令" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/classnote/07.容器命令" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/classnote/08.commit命令" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/classnote/09.docker私有库简介" charset="GBK" />
+  </component>
+</project>
