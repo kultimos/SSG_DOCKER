@@ -3,6 +3,7 @@
 
 2.运行私有库Registry,相当于本地有个私有Docker hub (这里需要注意运行私有库的命令完全不同于我们运行其他镜像,就使用下面这行命令)
     docker run -d -p 5000:5000 -v/zzyyuse/myregistry/:/tmp/registry --privileged=true registry
+    -v 添加自定义容器卷,挂载目录,将容器中的/tmp/registry目录挂载到宿主机的/zzyyuse/myregistry/目录下
 
 3.开启一个ubuntu容器,
     执行命令 ifconfig   (会提示ifconfig: command not found) ——>因为ubuntu默认没有安装net-tools
