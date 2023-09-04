@@ -1,0 +1,65 @@
+总体步骤
+    1.搜索镜像  2.拉取镜像  3.查看镜像  4.启动镜像  5.停止容器  6.移除容器
+
+    1.在dockerhub首页搜索相关镜像
+    2.git pull <镜像名称>
+    3.docker images
+    4.docker run <镜像名称>
+        这里启动这类软件时我们有两种方式,如果使用docker run <镜像名称> 这种方式呢,那么当前终端就只能用于运行tomcat了,此时如果关闭终端,tomcat服务也会被关闭，是不利于我们操作的
+        第二种呢就是交互式启动,docker run -d -p 8080:8080 --name=t1 tomcat,这样启动tomcat相当于开启了一个后台,我们的终端可以随意操作
+
+    目前在tomcat的启动这里有个小坑,新版的tomcat的默认的webapps是空的,会导致我们在linux上无法访问到localhost:8080,修改的方式也很简单,将原有的webapps删除,
+然后将webapps.dist修改为webapps,这样就可以在linux上访问到localhost:8080页面了
+    以后要是看不懂上面这句话,你就先把tomcat启动,然后再本级目录将webapps文件夹删除,然后将webapps.dist文件改名为webapps,然后打开linux的firefox浏览器,浏览器上输入localhost:8080,
+这时候估计你就想起来了;或者你可以直接用下面免修改那两行命令安装运行tomcat,好用的嘞
+
+    我们还有一个免修改版(不需要进行对webapps文件的那一堆操作,直接运行就可以访问8080,而且tomcat8也已经够用了)
+    docker pull billygoo/tomcat8-jdk8
+    docker run -d -p 8080:8080 --name=mytomcat8 billygoo/tomcat8-jdk8
+
+
+
+安装mysql
+    docker pull mysql:5.7   安装5.7版本mysql
+    启动简单版mysql
+        docker run -p 3306:3306 -e MYSQL_ROOT_PASSWORD=1234567a -d mysql:5.7
+        解析一下这个命令中的各个参数含义：
+            docker run: 运行容器命令。
+            -p 3306:3306: 将主机的3306端口映射到容器的3306端口，可以通过主机的3306端口访问容器中的MySQL服务。
+            -e MYSQL_ROOT_PASSWORD=1234567a`: 设置MySQL容器的环境变量，将`MYSQL\_ROOT\_PASSWORD`设为`1234567a`，这将作为MySQL的root用户的密码。
+            -d: 在后台运行容器。
+            mysql:5.7: 使用MySQL 5.7版本的官方镜像作为容器的基础镜像。
+            综上所述，这个命令将会在Docker中运行一个MySQL 5.7容器，映射主机的3306端口到容器的3306端口，并设置MySQL的root用户密码为`1234567a`。
+    进入docker启动的mysql容器
+        docker exec -it <容器ID> /bin/bash
+    进入mysql系统,需要先输入root密码
+        mysql -uroot -p
+    即可操作mysql
+    之后就可以在idea上连接该虚拟机的ip和mysql服务的暴露端口实现连通
+    此时是简单版,主要停止了当前镜像,再次重启就会发现数据都没了
+
+    启动实战版mysql(就是挂载了数据卷)
+    docker run -d -p 3306:3306 --privileged=true
+    -v /zzyyuse/mysql/log:/var/log/mysql
+    -v /zzyyuse/mysql/data:/var/lib/mysql
+    -v /zzyyuse/mysql/conf:/etc/mysql/conf.d
+    -e MYSQL_ROOT_PASSWORD=123456
+    --name mysql
+    mysql:5.7
+
+    当我们进行了这样配置之后,即使我们关闭或者删除了当前的docker运行的mysql镜像,但是数据的信息都已经存在了我们的数据卷中,只要再次启动服务,就会自动将日志中的信息写回数据库中
+    感觉还是为了强调容器卷的重要性,会有企业把mysql服务放在docker上跑吗？
+
+redis
+    redis这一点跟mysql是一样的,是需要挂载数据卷的,但是因为redis本身还携带有一些配置文件(redis.conf),所以我们需要做一些额外的处理
+    1.在CentOS宿主机下新建目录/app/redis mkdir -p /app/redis
+    2.将redis.conf文件拷贝到app/redis目录下  找到宿主机的redis安装路径下的redis.conf文件   cp /路径/redis.conf /app/redis/
+    3.在/app/redis目录下修改conf文件
+        注释 bind 127.0.0.1   表示允许外地连接
+        修改 daemonize no
+    4.挂载数据卷运行redis
+    docker run -d -p 6379:6379 --name myr3 --privileged=true
+    -v /app/redis/redis.conf:/etc/redis/redis.conf
+    -v /app/redis/data:/data
+    -d redis
+    redis-server /etc/redis/redis.conf
