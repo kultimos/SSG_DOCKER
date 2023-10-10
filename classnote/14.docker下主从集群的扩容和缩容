@@ -1,0 +1,127 @@
+主从集群扩容
+    1.添加两个节点服务6387 6388
+    docker run -d --name redis-node-7 --net host --privileged=true -v /app/redis-cluster/share/redis-node-7:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6387
+    docker run -d --name redis-node-8 --net host --privileged=true -v /app/redis-cluster/share/redis-node-8:/data redis:6.0.8 --cluster-enabled yes --appendonly yes --port 6388
+    此时只是6387和6388还没有加入到我们的主从集群当中
+
+    2.进入6387容器实例内部
+    docker exec -it redis-node-7 /bin/bash
+
+    3.将新增的6387节点作为master节点加入原集群,而6381则是作为当前三主三从集群的一个代表
+    redis-cli --cluster add-node 192.168.10.131:6387 192.168.10.131:6381
+    此时只是将6387作为一个master节点添加到了集群中,但还没有分配槽位
+
+    4.重新分配槽号
+    redis-cli --cluster reshard 192.168.10.131:6381
+
+    5.然后有一些交互操作
+    输入命令redis-cli --cluster reshard 192.168.10.131:6381
+    root@localhost:/data# redis-cli --cluster reshard 192.168.10.131:6387
+
+    信息打印：
+    >>> Performing Cluster Check (using node 192.168.10.131:6381)
+    M: 91a653f98131d906037c2b9476568411e793e2cc 192.168.10.131:6381
+       slots:[0-5460] (5461 slots) master
+       1 additional replica(s)
+    S: 2b090a7103c99f31e40b7e4c0880ee8007ceaa93 192.168.10.131:6384
+       slots: (0 slots) slave
+       replicates 5ed436664bffedcbdb083489d0a45a4ff889b5f1
+    M: 45297c77a95fabd1a375bc1452089804820e1017 192.168.10.131:6387
+       slots: (0 slots) master
+    M: c3841c17fd3be6e93b44ca49790ab8f5e36a3fbe 192.168.10.131:6383
+       slots:[10923-16383] (5461 slots) master
+       1 additional replica(s)
+    S: 92289ec2ef6e2610d2f003cd49636c3b0e0fccd4 192.168.10.131:6385
+       slots: (0 slots) slave
+       replicates c3841c17fd3be6e93b44ca49790ab8f5e36a3fbe
+    S: d0932734f36585cde3e1fa291c100f831bcf433a 192.168.10.131:6386
+       slots: (0 slots) slave
+       replicates 91a653f98131d906037c2b9476568411e793e2cc
+    M: 5ed436664bffedcbdb083489d0a45a4ff889b5f1 192.168.10.131:6382
+       slots:[5461-10922] (5462 slots) master
+       1 additional replica(s)
+    [OK] All nodes agree about slots configuration.
+    >>> Check for open slots...
+    >>> Check slots coverage...
+    [OK] All 16384 slots covered.
+    交互点1:这里的4096需要我们手动填写,这个值使用16384/master节点数,加入了6387后一共四个master节点
+    How many slots do you want to move (from 1 to 16384)? 4096
+
+    交互点2:这里的id是上面信息打印里 6387节点的id,因为我们是要给6387槽位,所以这里写6387的id
+    What is the receiving node ID? 45297c77a95fabd1a375bc1452089804820e1017
+    Please enter all the source node IDs.
+      Type 'all' to use all the nodes as source nodes for the hash slots. 写all就代表用所有节点来重新分配槽位
+      Type 'done' once you entered all the source nodes IDs. 会将在done前输入的节点ID身上的槽位给上面的接收ID,通常在缩容的时候需要用
+
+    交互点3:选择all
+    Source node #1: all
+
+    此时槽位分配完毕,6387已经完成作为一个可用的master节点加入集群的全过;需要注意的是被分配到的槽位值,给新节点的槽位值是由原始的三个节点槽位,每人拿出一部分,
+    拼凑出4096个槽位给6387,至于为什么这样做呢,有以下几点原因
+    -数据的连续性和一致性:通过将原始节点的槽位拼凑成一个新的完整槽位区间,可以保持数据的连续性和一致性;这样可以最大程度地减少数据移动和同步的成本;因为只需要在原有节点和新节点之间进行部分数据的迁移和同步
+    -减少数据迁移量:如果采取所有槽位打乱重分配的方式,将导致整个集群的数据进行全量复制和迁移;这样的数据迁移量会非常大,耗费大量的网络带宽和时间;通过部分槽位的迁移,可以减小数据迁移的规模,提高迁移效率
+    -减少客户端连接失效:如果采用完全打乱重分配的方式,会导致大量的客户端连接失效,因为客户端需要重新建立与新节点的连接;通过部分槽位的迁移,可以最小化客户端连接失效的数量,降低对业务的影响
+
+    6.为主节点6387分配从节点6388 最后的id是master节点的id
+    redis-cli --cluster add-node 192.168.10.131:6388 192.168.10.131:6387 --cluster-slave --cluster-master-id 45297c77a95fabd1a375bc1452089804820e1017
+
+主从集群缩容
+    1.检查集群情况,获取6387和6388的节点ID
+    redis-cli --cluster check 192.168.10.131:6388
+
+    2.缩容时,先删从节点,再删主节点
+    redis-cli --cluster del-node 192.168.10.131:6388 b0731f4adea530c1b063752b7ffb1e81f6ea3958
+    此时6388节点已经从集群中删除
+
+    3.将6387的槽号清空,重新分配,当前案例中将清出来的槽号都给6381
+    redis-cli --cluster reshard 192.168.10.131:6381
+
+    4.交互操作
+    槽位重分配命令
+    root@localhost:/data# redis-cli --cluster reshard 192.168.10.131:6381
+    打印当前集群的节点信息
+    >>> Performing Cluster Check (using node 192.168.10.131:6381)
+    M: 91a653f98131d906037c2b9476568411e793e2cc 192.168.10.131:6381
+       slots:[1365-5460] (4096 slots) master
+       1 additional replica(s)
+    S: 2b090a7103c99f31e40b7e4c0880ee8007ceaa93 192.168.10.131:6384
+       slots: (0 slots) slave
+       replicates 5ed436664bffedcbdb083489d0a45a4ff889b5f1
+    M: 45297c77a95fabd1a375bc1452089804820e1017 192.168.10.131:6387
+       slots:[0-1364],[5461-6826],[10923-12287] (4096 slots) master
+    M: c3841c17fd3be6e93b44ca49790ab8f5e36a3fbe 192.168.10.131:6383
+       slots:[12288-16383] (4096 slots) master
+       1 additional replica(s)
+    S: 92289ec2ef6e2610d2f003cd49636c3b0e0fccd4 192.168.10.131:6385
+       slots: (0 slots) slave
+       replicates c3841c17fd3be6e93b44ca49790ab8f5e36a3fbe
+    S: d0932734f36585cde3e1fa291c100f831bcf433a 192.168.10.131:6386
+       slots: (0 slots) slave
+       replicates 91a653f98131d906037c2b9476568411e793e2cc
+    M: 5ed436664bffedcbdb083489d0a45a4ff889b5f1 192.168.10.131:6382
+       slots:[6827-10922] (4096 slots) master
+       1 additional replica(s)
+    [OK] All nodes agree about slots configuration.
+    >>> Check for open slots...
+    >>> Check slots coverage...
+    [OK] All 16384 slots covered.
+
+    交互点1:这次希望移动的槽位数量,因为我们这里想要把6387移除当前集群,而他本身拥有的槽位数是4096,所以这里是4096
+    How many slots do you want to move (from 1 to 16384)? 4096
+
+    交互点2:谁来接受这4096个槽位,我们这里填的是6381的节点ID,表示会将这4096个槽位都分给6381
+    What is the receiving node ID? 91a653f98131d906037c2b9476568411e793e2cc
+    Please enter all the source node IDs.
+      Type 'all' to use all the nodes as source nodes for the hash slots.
+      Type 'done' once you entered all the source nodes IDs.
+
+    交互点3:这里使用done就是表示,上面的4096个节点来自于谁,我们这里填写的是6387的节点ID,所以done以后就会将6387的槽位全部分配给6381
+    其实类比之前我们直接选择ALL,代表的就是所有节点要共同拿出一部分槽位,而我们现在是指定了一个具体的节点
+    Source node #1: 45297c77a95fabd1a375bc1452089804820e1017
+    Source node #2: done
+
+    此时,6387节点的槽位已经被清空,但是6387仍然是集群的一份子
+
+    5.从集群中删除6387节点
+    redis-cli --cluster del-node 192.168.10.131:6387 45297c77a95fabd1a375bc1452089804820e1017
+    此时彻底将一个分配了槽位的master节点从集群中移除了
