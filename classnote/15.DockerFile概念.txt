@@ -1,0 +1,49 @@
+1.DockerFile简介
+    Dockerfile是用来构建Docker镜像的文本文件,是由一条条构建镜像所需的指令和参数构成的脚本
+
+2.编写DockerFile的三部曲
+    -  编写Dockerfile文件
+    -  docker build 命令构建镜像
+    -  docker run 运行镜像实例
+
+3.Docker内容基础知识
+    -  每条保留字指令都必须为大写字母且后面要跟随至少一个参数
+    -  指令按照从上到下,顺序执行
+    -  # 表示注释
+    -  每条指令都会创建一个新的镜像层并对镜像进行提交
+
+4.Docker执行DockerFile的大致流程
+    -  docker从基础镜像运行一个容器
+    -  执行一条指令并对容器作出修改
+    -  执行类似docker commit的操作提交一个新的镜像层
+    -  docker再基于刚提交的镜像运行一个新容器
+    -  执行dockerfile中的下一条指令,直到所以指令都执行完成
+
+5.Dockerfile的常用保留字(异常重要)
+    -FROM    基础镜像,当前新镜像是基于哪个镜像,指定一个已经存在的镜像作为模板,from基本都出现在dockerfile第一行
+    -MAINTAINER    镜像维护者的姓名和邮箱地址
+    -RUN    容器构建时需要运行的命令,有两种格式————shell和exec,run命令是在docker build时运行
+            shell格式中  RUN <命令行命令>  等价于  在终端操作的shell命令  例: RUN yum -y install vim  等价于 直接在命令行里输入 yum -y install vim
+            exec格式中 RUN ["可执行文件","参数1","参数2"]   例: RUN ["./test.php", "dev", "offline"]  等价于  RUN ./test.php dev offline
+            老师是比较推荐用shell的写法
+    -EXPOSE    当前容器对外暴露出的端口
+    -WORKDIR    指定在创建容器后,终端默认登录的进来工作目录,一个落脚点;即我们通过Dockerfile创建了一个新镜像后,执行该镜像后会将终端目录跳转到WORKDIR的指定位置
+    -USER    指定该镜像以什么样的用户去执行,如果都不指定,默认是root,一般都不会特别指定
+    -ENV    用来在构建镜像过程中配置环境变量
+            例:  ENV MY_PATH /usr/mytest 表示将MY_PATH设置为环境变量,并且后续其他保留字可以直接使用该环境变量
+    -VOLUME     容器数据卷,用于数据保存和持久化工作
+    -ADD    将宿主机目录下的文件拷贝进镜像且会自动处理URL和解压tar压缩包   ADD 等价于 COPY + 解压
+    -COPY    类似ADD,拷贝文件和目录到镜像中,将从构建上下文目录中<源路径>的文件/目录复制到新的一层的镜像内的<目标路径>位置,简单说就是把指定路径的"文件/目录"拷贝到新路径下
+    -CMD    指定容器启动以后要干的事情
+            Dockerfile中可以有多个CMD指令,但只有最后一个生效,CMD会被docker run 之后的参数替换、
+                这部分要解释一下最后一句,即如果我们擅自在一些脚本后面加了其他参数
+                例如 docker run -it -p 8080:8080 redis_1 /bin/bash
+                就相当于在redis_1这个脚本的内容的最后一行加了一句 CMD ["/bin/bash","run"] 那么原有的脚本最后一个CMD就被覆盖掉了
+                这就能解释,实际上CMD只有最后一个生效跟CMD会被docker run后的参数替换是有一些相似性的,本质就在于docker run的参数会变为CMD命令追加到脚本中
+            CMD指令的格式与RUN也类似 shell格式中: CMD <命令>
+                                  exec格式中: CMD ["可执行文件","参数1","参数2"]
+                                  参数列表格式: CMD ["参数1","参数2" ...] 在指定了 ENTRYPOINT 指令后,用CMD指定具体的参数
+    -ENTRYPOINT    也是用来指定一个容器启动时要运行的命令,类似于CMD指令,但是ENTRYPOINT不会被docker run后面的命令覆盖,而且这些命令行参数会被当做参数送给ENTRYPOINT指定指定的程序
+                   ENTRYPOINT可以跟CMD一起使用,这种情况下的CMD的作用是给ENTRYPOINT传参即<ENTRYPOINT> "<CMD>"
+                   例:15.ENTRYPOINT.sh
+

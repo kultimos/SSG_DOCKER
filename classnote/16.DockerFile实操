@@ -1,0 +1,16 @@
+1.docker环境下拉取最新的centos镜像
+    - docker pull centos
+
+2.运行centos镜像,然后使用命令 vim  ifconfig  java-version 发现最原始版的centos都没有这些命令
+
+3.尝试通过一个Dockerfile对当前的centos镜像进行改造,使centos镜像具备vim+ifconfig+jdk8
+
+4.开始编写一个Dockerfile文件,需要注意开头的D必须大写,需要注意jdk8的安装包必须跟我们的Dockerfile文件在同一目录结构下
+    Dockerfile_16_01中是针对于centos8的脚本,并且有安装java环境的相关命令,但是目前无法运行,一个是jdk解压时出现问题,暂时未查明原因,且本章节旨在理解Dockerfile的运行逻辑,所以没有深究;
+  其次是centos8的环境的yum源也存在问题,导致vim和ifconfig的安装都无法进行,最终选择放弃该环境
+    Dockerfile_16_02中是基于centos7环境进行增强,并且去除了安装Java环境,可以运行;
+
+5.构建(需要在Dockerfile的路径下执行)
+    docker build -t 新镜像名字:TAG .
+
+6.运行检查新镜像是否具有vim和ifconfig
