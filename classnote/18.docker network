@@ -1,0 +1,91 @@
+1.Docker网络
+    docker安装并启动服务后，会在宿主机中添加一个虚拟网卡。
+
+    在Docker服务启动前，使用 ifconfig 或 ip addr 查看网卡信息：
+    - ens33或eth0：本机网卡
+    - lo：本机回环网络网卡
+    - 可能有virbr0（CentOS安装时如果选择的有相关虚拟化服务,就会多一个以网桥连接的私网地址的virbr0网卡,
+      作用是为连接虚拟网卡提供NAT访问外网的功能;如果要移除该服务,可以使用 yum remove libvirt-libs.x86_64）
+
+    使用 systemctl start docker启动Docker服务后,会多出一个 docker0 网卡
+        docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+                inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+                ether 02:42:fc:c3:08:f8  txqueuelen 0  (Ethernet)
+                RX packets 0  bytes 0 (0.0 B)
+                RX errors 0  dropped 0  overruns 0  frame 0
+                TX packets 0  bytes 0 (0.0 B)
+                TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+
+
+    Docker容器的网络隔离，是通过Linux内核特性 namespace和 cgroup 实现的
+
+2.Docker network的常用命令
+    - 查看网络列表    docker network ls
+    - 查看网络源数据   docker network inspect <网络名称>
+    - 删除网络    docker network rm <网络名称>
+
+3.Docker network的作用
+    - 容器间的互联和通信以及端口映射
+    - 容器IP变动时,可以通过服务名直接网络通信而不受到影响
+    说明:这里关于容器ip变动进行一下说明,通常默认的bridge情况下,Gateway的地址是确定的,而容器的IP是会随着情况不同而发生变化的;
+        比如我们现在初始化两个ubuntu容器A和B,此时A和B会被分别分配一个IP,如果此时我们将B关闭,紧接着开启一个ubuntu容器C,会发现此时的容器C会占据刚才分配给
+        B的那个IP,那么此时我们如果再开启容器B,容器B的IP是一定会发生改变的;这里我为什么敢肯定容器C会占据刚刚容器B的IP呢?因为在默认的bridge模式下,IP的分配
+        就是有序的,Gateway是172.17.0.1则容器A就是172.17.0.2,容器B就是172.17.0.3;此时我们关闭了容器B,那么这个ip就空出来了,自然会分配给下一个容器C
+
+4.Docker network的网络模式
+    -bridge:
+        概念:为每一个容器分配、设置IP等,并将容器连接到一个docker0;虚拟网桥,默认为该模式
+        操作:使用--network bridge指定,默认使用docker0
+    -host:
+        概念:容器将不会虚拟出自己的网卡,配置自己的IP等,而是使用宿主机的IP和端口
+        操作:使用--network host指定
+    -none:
+        概念:容器有独立的Network namespace,但并没有对其进行任何网络设置,如分配veth pair和网桥连接, IP等 (该模式很少用,了解即可)
+        操作:使用--network none指定
+    -container:
+        概念:新创建的容器不会创建自己的网卡和配置自己的IP,而是和一个指定的容器共享IP、端口范围等
+        操作:使用--network container:<NAME或容器ID>指定
+
+5.bridge
+    Docker使用Linux桥接，在宿主机虚拟一个Docker容器网桥（docker0）,Docker启动一个容器时会根据Docker网桥的网段分配给容器一个IP地址,
+  称为Container-IP,同时Docker网桥是每个容器的默认网关;因为在同一个宿主机内的容器接入同一个网桥,这样容器之间就能够通过容器的Container-IP直接通信;
+
+    从no18中的bridge概念图我们可以得知在默认的bridge模式下,网桥docker0会分别在宿主机和容器内分别创建一个虚拟接口,使之连通实现通信
+    宿主机中的接口以veth开头,容器中的接口以eth0开头
+    veth和eth0两两配对如no18中的bridge实操图所示
+    基于此实现了多个容器之间的网络互通
+
+6.host
+    直接使用宿主机的 IP 地址与外界进行通信,不再需要额外进行 NAT 转换
+    容器将不会获得一个独立的 Network Namespace,而是和宿主机共用一个 Network space
+    容器将不会虚拟出自己的网卡,而是直接使用宿主机的 IP 和端口
+    概念图如:no18的host概念图所示,不在具有eth0接口,自身也没有ip,网关信息,全部是借用宿主机的
+
+7.none
+    在none模式下,并不为docker容器进行任何网络配置,也就是说,这个Docker容器没有网卡、IP、路由等信息,只有一个lo
+    需要我们自己为Docker容器添加网卡、配置IP等
+
+8.container
+    代码示例：
+    - 开启alpine1容器
+    docker run -it --name alpine1 alpine /bin/sh
+
+    - 开启alpine2容器 并指定其与alpine1 容器共享网络
+    docker run -it --network container:alpine1 --name alpine2 alpine /bin/sh
+
+    这里有个坑哈,这种模式tomcat是不支持的,所以上面的代码中我们用了alpine做演示
+    最终结果如no18的container实操图所示
+
+9.自定义网络
+    创建自定义网络
+        docker network create tomcat_network
+    创建两个tomcat容器实例,并选用自定义网络模式
+        docker run -d -p 8081:8080 --network tomcat_network --name tomcat1 tomcat:8.5-jdk8-corretto
+        docker run -d -p 8082:8080 --network tomcat_network --name tomcat2 tomcat:8.5-jdk8-corretto
+
+    加入自定义网络前
+    两个容器相互之间可以通过ip ping通,但是无法通过容器名ping通
+    加入自定义网络后
+    可以通过容器名 ping通
