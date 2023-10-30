@@ -1,41 +1,28 @@
-1.创建java项目docker模块,打成jar包,放到服务器上,与Dockerfile保持同一目录
+1.创建java项目docker_boot模块,打成jar包,放到服务器上,与Dockerfile保持同一目录
 
 2.编写Dockerfile
-    FROM java:8
+    FROM openjdk:8-oracle
+    MAINTAINER lee
 
-    MAINTAINER kultimos
-
+    # 在主机 /var/lib/docker目录下创建一个临时文件，并链接到容器的 /tmp
     VOLUME /tmp
 
-    # 将jar包添加到容器中并更名为zzyy_docker.jar
-    ADD docker-0.0.1-SNAPSHOT.jar zzyy_docker.jar
+    # 将jar包添加到容器中，并命名为 springboot_docker.jar
+    ADD docker_boot-1.0-SNAPSHOT.jar /springboot_docker.jar
+    # 运行jar包
+    RUN bash -c 'touch /springboot_docker.jar'
+    ENTRYPOINT ["java", "-jar", "/springboot_docker.jar"]
 
-    #运行jar包
-    RUN bash -c 'touch /zzyy_docker.jar'
-
-    ENTRYPOINT ["java","-jar","/zzyy_docker.jar"]
-
-    #暴露6001端口作为微服务
+    # SpringBoot项目配置的端口号为6001，需要将6001暴露出去
     EXPOSE 6001
 
 3.执行Dockerfile生成新镜像
-    docker build -t kultimos_docker:1.0 .
+    docker build -t springboot_docker:1.3 .
 
 4.运行镜像文件
-    docker run -d -p 6001:6001 <镜像ID>
+    docker run -d -p 6001:6001 --name springboot3 springboot_docker:1.3
 
 5.访问服务器ip端口尝试调用jar包中的微服务
-    192.168.10.131:6001/test
+    192.168.10.131:6001/order/docker
 
-目前这部分最终没有实现,原因是在最后一步执行的过程中总是会报错:
-    Exception in thread "main" java.lang.NoClassDefFoundError: org/springframework/boot/SpringApplication
-            at com.kul.docker.DockerApplication.main(DockerApplication.java:10)
-    Caused by: java.lang.ClassNotFoundException: org.springframework.boot.SpringApplication
-            at java.net.URLClassLoader.findClass(URLClassLoader.java:381)
-            at java.lang.ClassLoader.loadClass(ClassLoader.java:424)
-            at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:331)
-            at java.lang.ClassLoader.loadClass(ClassLoader.java:357)
-            ... 1 more
-
-
-本章节顶着牙疼鏖战一下午依然没有成功 很烦！
+这部分需要注意的一点是依赖中打包插件的配置

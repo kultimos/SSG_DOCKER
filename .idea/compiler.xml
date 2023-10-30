@@ -6,12 +6,12 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="docker_boot" />
         <module name="docker" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="docker" target="1.8" />
-      <module name="docker_boot" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
