@@ -1,0 +1,41 @@
+1.Compose是什么
+   Docker-Compose 是 Docker 官方的开源项目，负责实现对Docker容器集群的快速编排。
+   Docker-Compose可以管理多个Docker容器组成一个应用。需要定义一个yaml格式的配置文件 docker-compose.yml，配置好多个容器之间的调用关系，然后只需要一个命令就能同时启动/关闭这些容器。
+   Docker建议我们每个容器中只运行一个服务，因为Docker容器本身占用资源极少，所以最好是将每个服务单独的分割开来。但是如果我们需要同时部署多个服务，每个服务单独构建镜像构建容器就会比较麻烦;
+ 所以 Docker 官方推出了 docker-compose 多服务部署的工具。
+   Compose允许用户通过一个单独的 docker-compose.yml 模板文件来定义一组相关联的应用容器为一个项目（project）。可以很容易的用一个配置文件定义一个多容器的应用，然后使用一条指令安装这个应用的所有依赖，完成构建。
+
+2.Compose的安装
+    - sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    - sudo chmod +x /usr/local/bin/docker-compose
+    - docker-compose --version
+
+    卸载Compose：直接删除 usr/local/bin/docker-compose文件即可
+
+2.Compose的核心概念：
+    - 服务（service）：一个个应用容器实例
+    - 工程（project）：由一组关联的应用容器组成的一个完整业务单元，在docker-compose.yml中定义
+
+3.Compose使用的三个步骤：
+    - 编写 Dockerfile 定义各个应用容器，并构建出对应的镜像文件
+    - 编写 docker-compose.yml，定义一个完整的业务单元，安排好整体应用中的各个容器服务
+    - 执行 docker-compose up 命令，其创建并运行整个应用程序，完成一键部署上线
+
+4.Compose常用命令
+    - docker-compose -h         查看帮助
+    - docker-compose up         启动所有docker-compose服务
+    - docker-compose up -d      启动所有docker-compose服务并后台运行
+    - docker-compose down       停止并删除容器、网络、卷、镜像
+    - docker-compose exec <yml中的服务id> /bin/bash      进入容器实例内部
+    - docker-compose ps         展示当前docker-compose编排过的运行的所有容器
+    - docker-compose top        展示当前docker-compose编排过的容器进程
+    - docker-compose logs <yml中国的服务id>      查看容器输出日志
+    - docker-compose config     检查配置
+    - docker-compose config -q  检查配置,有问题时才会有日志输出
+    - docker-compose restart    重启服务
+    - docker-compose start      启动服务
+    - docker-compose stop       停止服务
+
+    docker-compose ps 提供了关于服务和容器的整体状态信息,
+    而 docker-compose top 则提供了关于每个服务容器中运行的具体进程的详细信息;
+    简单说就是ps只能看容器信息而top可以看每个容器内部的进程信息,ps是总览,top则更为深入
