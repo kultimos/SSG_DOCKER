@@ -13,7 +13,7 @@ public class UserController {
     @Resource
     private IUserService userService;
 
-    @RequestMapping(value = "/user/add",method = RequestMethod.POST)
+    @GetMapping("/user/add")
     public void addUser() {
         for(int i=1; i<=3; i++) {
             User user = new User();

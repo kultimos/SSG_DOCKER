@@ -11,3 +11,13 @@ spring:
     url: jdbc:mysql://192.168.10.131:3306/ssg?characterEncoding=utf-8&useSSL=false
     username: root
     password: 123456
+  redis:
+    database: 0
+    host: 192.168.10.131
+    password:
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        max-wait: -1ms
+        min-idle: 0

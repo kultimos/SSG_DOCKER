@@ -26,10 +26,12 @@ public class OrderController {
     @Resource
     private IUserService userService;
 
-
+    @Resource
+    private RedisTemplate redisTemplate;
 
     @RequestMapping("/order/docker")
     public String helloDocker() {
+        redisTemplate.opsForValue().set("nihao","wushuai");
         return "hello world \t" + port + "\t" + UUID.randomUUID().toString();
     }
 
