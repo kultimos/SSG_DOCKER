@@ -1,11 +1,18 @@
 package com.kul.controller;
 
 
+import com.kul.pojo.User;
+import com.kul.service.IUserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import redis.clients.jedis.Jedis;
 
+import javax.annotation.Resource;
+import java.util.Date;
 import java.util.UUID;
 
 /**
@@ -15,6 +22,11 @@ import java.util.UUID;
 public class OrderController {
     @Value("${server.port}")
     private String port;
+
+    @Resource
+    private IUserService userService;
+
+
 
     @RequestMapping("/order/docker")
     public String helloDocker() {
