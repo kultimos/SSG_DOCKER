@@ -34,7 +34,7 @@
     - docker-compose config -q  检查配置,有问题时才会有日志输出
     - docker-compose restart    重启服务
     - docker-compose start      启动服务
-    - docker-compose stop       停止服务
+    - docker-compose stop       停止服务————可以一次停掉compose文件中部署的所有服务
 
     docker-compose ps 提供了关于服务和容器的整体状态信息,
     而 docker-compose top 则提供了关于每个服务容器中运行的具体进程的详细信息;

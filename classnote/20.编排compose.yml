@@ -48,3 +48,7 @@ services:
 networks:
   # 创建 springboot_network 网桥网络
   springboot_network:
+
+# 完成compose.yml编排服务后就可以将该文件存放在jar包和Dockerfile同一目录后运行,运行命令是:docker-compose up -d
+# 目前该部分在服务器上实现了运行 但是发现redis直接挂掉、mysql无法访问
+# 思想第一 明白编排的意义 和 微服务镜像化在docker上运行的原理更为重要
